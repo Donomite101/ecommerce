@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Login - ZeroLayer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+  <div class="flex flex-col md:flex-row items-center bg-white rounded-lg shadow-lg overflow-hidden max-w-4xl w-full">
+    
+    <!-- Promo Section -->
+    <div class="bg-indigo-600 text-white p-10 md:w-1/2 w-full">
+      <h2 class="text-3xl font-bold mb-4">Welcome Back!</h2>
+      <p class="text-lg mb-6">Shop exclusive collections from Men, Women, and Kids. Enjoy up to 50% off on your first order.</p>
+      <img src="https://images.unsplash.com/photo-1607083206869-4c7672e72a8a?q=80&w=2070" alt="Special Offer" class="w-full h-48 object-contain rounded-lg shadow-md">
+    </div>
+
+    <!-- Login Form -->
+    <div class="p-10 md:w-1/2 w-full">
+      <h2 class="text-2xl font-bold text-gray-800 mb-6">Login to Your Account</h2>
+      <div class="space-y-4">
+        <input id="email" type="email" placeholder="Email" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        <input id="password" type="password" placeholder="Password" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        <button onclick="login()" class="w-full bg-indigo-600 text-white font-semibold py-3 rounded-lg hover:bg-indigo-700 transition">Login</button>
+      </div>
+      <p class="mt-6 text-center text-sm text-gray-600">Don't have an account? 
+        <a href="/signup.html" class="text-indigo-600 hover:underline">Signup</a>
+      </p>
+    </div>
+  </div>
+
+  <script>
+    async function login() {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+
+      const data = await response.json();
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+        window.location.href = '/';
+      } else {
+        alert(data.message);
+      }
+    }
+  </script>
+</body>
+</html>

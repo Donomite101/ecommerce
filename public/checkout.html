@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Checkout - ZeroLayer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/css/styles.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <nav class="bg-white shadow p-4">
+    <div class="container mx-auto flex justify-between items-center">
+      <a href="/" class="text-2xl font-bold text-indigo-600">ZeroLayer</a>
+      <div id="nav-links" class="flex gap-6">
+        <a href="/cart.html" class="hover:text-indigo-600 transition">Cart</a>
+        <a href="/orders.html" class="hover:text-indigo-600 transition">Orders</a>
+        <a href="/login.html" id="login-link" class="hover:text-indigo-600 transition">Login</a>
+        <button onclick="logout()" id="logout-button" class="text-red-500 hover:text-red-600 transition hidden">Logout</button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container mx-auto py-10 px-4">
+    <h1 class="text-4xl font-bold text-center mb-10 text-gray-800">Checkout</h1>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+      <!-- Order Summary -->
+      <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-2xl font-semibold mb-4 text-gray-700">Order Summary</h2>
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="border-b">
+              <th class="py-2 text-gray-500">Product</th>
+              <th class="py-2 text-gray-500">Price</th>
+              <th class="py-2 text-gray-500">Qty</th>
+              <th class="py-2 text-gray-500">Total</th>
+            </tr>
+          </thead>
+          <tbody id="order-items"></tbody>
+        </table>
+        <p class="mt-6 text-xl font-bold text-gray-800">Total: <span id="order-total">$0.00</span></p>
+      </div>
+
+      <!-- Checkout Form -->
+      <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-2xl font-semibold mb-4 text-gray-700">Shipping & Payment</h2>
+        <div class="space-y-5">
+          <input type="text" id="fullName" placeholder="Full Name" class="w-full p-3 border rounded" required />
+          <input type="text" id="address" placeholder="Shipping Address" class="w-full p-3 border rounded" required />
+          <input type="text" id="city" placeholder="City" class="w-full p-3 border rounded" required />
+          <input type="text" id="postalCode" placeholder="Postal Code" class="w-full p-3 border rounded" required />
+          <select id="payment" class="w-full p-3 border rounded" required>
+            <option value="" disabled selected>Select Payment Method</option>
+            <option value="credit_card">Credit Card</option>
+            <option value="paypal">PayPal</option>
+            <option value="bank_transfer">Bank Transfer</option>
+          </select>
+          <button onclick="placeOrder()" id="checkout-button" class="w-full bg-indigo-600 text-white p-3 rounded hover:bg-indigo-700 disabled:opacity-50" disabled>Place Order</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Success Modal -->
+  <div id="success-modal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 hidden">
+    <div class="bg-white rounded-xl shadow-xl p-8 text-center animate__animated animate__zoomIn">
+      <div class="text-green-500 text-4xl mb-4">🎉</div>
+      <h2 class="text-xl font-semibold text-gray-800">Order Placed Successfully!</h2>
+      <p class="text-gray-600 mt-2">Thank you for shopping with us.</p>
+      <button onclick="closeSuccessModal()" class="mt-4 bg-indigo-600 text-white px-6 py-2 rounded hover:bg-indigo-700">
+        View Orders
+      </button>
+    </div>
+  </div>
+
+  <script src="/js/logout.js"></script>
+  <script>
+    function updateNav() {
+      const token = localStorage.getItem('token');
+      document.getElementById('login-link').style.display = token ? 'none' : 'inline';
+      document.getElementById('logout-button').style.display = token ? 'inline' : 'none';
+    }
+
+    async function fetchCart() {
+      const token = localStorage.getItem('token');
+      if (!token) return window.location.href = '/login.html';
+
+      try {
+        const res = await fetch('/api/cart', { headers: { 'Authorization': `Bearer ${token}` } });
+        if (res.status === 401) return logout();
+        const cart = await res.json();
+
+        const orderItems = document.getElementById('order-items');
+        const orderTotal = document.getElementById('order-total');
+        const checkoutBtn = document.getElementById('checkout-button');
+
+        orderItems.innerHTML = '';
+        if (!cart.items || cart.items.length === 0) {
+          orderItems.innerHTML = '<tr><td colspan="4" class="py-4 text-center text-gray-500">Cart is empty</td></tr>';
+          orderTotal.textContent = '$0.00';
+          checkoutBtn.disabled = true;
+          return;
+        }
+
+        let total = 0;
+        cart.items.forEach(item => {
+          const itemTotal = item.product.price * item.quantity;
+          total += itemTotal;
+          orderItems.innerHTML += `
+            <tr class="border-b">
+              <td class="py-2 flex items-center space-x-3">
+                <img src="${item.product.image}" alt="${item.product.name}" class="w-12 h-12 object-cover rounded" />
+                <span>${item.product.name}</span>
+              </td>
+              <td class="py-2">$${item.product.price.toFixed(2)}</td>
+              <td class="py-2">${item.quantity}</td>
+              <td class="py-2">$${itemTotal.toFixed(2)}</td>
+            </tr>`;
+        });
+        orderTotal.textContent = `$${total.toFixed(2)}`;
+        checkoutBtn.disabled = false;
+      } catch (err) {
+        console.error('Cart error:', err);
+        alert('Failed to load cart.');
+      }
+    }
+
+    async function placeOrder() {
+      const token = localStorage.getItem('token');
+      if (!token) return window.location.href = '/login.html';
+
+      const fullName = document.getElementById('fullName').value;
+      const address = document.getElementById('address').value;
+      const city = document.getElementById('city').value;
+      const postalCode = document.getElementById('postalCode').value;
+      const payment = document.getElementById('payment').value;
+
+      if (!fullName || !address || !city || !postalCode || !payment) {
+        alert('Please fill all fields.');
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/orders', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ address: `${fullName}, ${address}, ${city}, ${postalCode}`, payment })
+        });
+        const data = await res.json();
+
+        if (data.message) {
+          showSuccessModal();
+        } else {
+          alert(data.error || 'Order failed.');
+        }
+      } catch (err) {
+        console.error('Place order error:', err);
+        alert('Error placing order.');
+      }
+    }
+
+    function showSuccessModal() {
+      document.getElementById('success-modal').classList.remove('hidden');
+    }
+
+    function closeSuccessModal() {
+      window.location.href = '/orders.html';
+    }
+
+    updateNav();
+    fetchCart();
+  </script>
+</body>
+</html>

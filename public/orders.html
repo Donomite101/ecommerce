@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Orders - ZeroLayer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <nav class="bg-white shadow p-4">
+    <div class="container mx-auto flex justify-between items-center">
+      <a href="/" class="text-2xl font-bold text-indigo-600">ZeroLayer</a>
+      <div class="flex gap-6">
+        <a href="/cart.html" class="hover:text-indigo-600 transition">Cart</a>
+        <a href="/orders.html" class="text-indigo-600 font-semibold">Orders</a>
+        <a href="/login.html" id="login-link" class="hover:text-indigo-600 transition">Login</a>
+        <button onclick="logout()" id="logout-button" class="text-red-500 hover:text-red-600 hidden">Logout</button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container mx-auto py-10 px-4">
+    <h1 class="text-4xl font-bold text-center text-gray-800 mb-10">Your Orders</h1>
+    <div id="orders" class="space-y-6 max-w-4xl mx-auto"></div>
+  </div>
+
+  <script src="/js/logout.js"></script>
+  <script>
+    function updateNav() {
+      const token = localStorage.getItem('token');
+      document.getElementById('login-link').style.display = token ? 'none' : 'inline';
+      document.getElementById('logout-button').style.display = token ? 'inline' : 'none';
+    }
+
+    async function fetchOrders() {
+      const token = localStorage.getItem('token');
+      if (!token) return window.location.href = '/login.html';
+
+      try {
+        const response = await fetch('/api/orders', { headers: { Authorization: `Bearer ${token}` } });
+        if (response.status === 401) {
+          alert('Session expired. Please login again.');
+          localStorage.removeItem('token');
+          return window.location.href = '/login.html';
+        }
+
+        const orders = await response.json();
+        const ordersDiv = document.getElementById('orders');
+        ordersDiv.innerHTML = '';
+
+        if (orders.length === 0) {
+          return ordersDiv.innerHTML = `
+            <div class="text-center text-gray-500 animate__animated animate__fadeIn">
+              <p class="text-lg">You haven't placed any orders yet.</p>
+              <a href="/" class="mt-4 inline-block text-indigo-600 hover:underline">Go Shopping</a>
+            </div>
+          `;
+        }
+
+        orders.forEach(order => {
+          const itemsHTML = order.items.map(item => `
+            <tr class="border-b">
+              <td class="py-2 flex items-center space-x-3">
+                <img src="${item.product.image}" alt="${item.product.name}" class="w-12 h-12 rounded object-cover" />
+                <span>${item.product.name}</span>
+              </td>
+              <td class="py-2 text-center">${item.quantity}</td>
+              <td class="py-2 text-center">$${item.product.price.toFixed(2)}</td>
+              <td class="py-2 text-right">$${(item.product.price * item.quantity).toFixed(2)}</td>
+            </tr>
+          `).join('');
+
+          const statusClass = {
+            pending: "bg-yellow-100 text-yellow-800",
+            processing: "bg-blue-100 text-blue-800",
+            shipped: "bg-green-100 text-green-800",
+            delivered: "bg-green-200 text-green-900",
+            cancelled: "bg-red-100 text-red-800"
+          }[order.status.toLowerCase()] || "bg-gray-200 text-gray-800";
+
+          ordersDiv.innerHTML += `
+            <div class="bg-white shadow-lg rounded-lg p-6 animate__animated animate__fadeInUp">
+              <div class="flex justify-between items-center mb-4">
+                <div>
+                  <h2 class="text-lg font-semibold text-gray-800">Order #${order._id}</h2>
+                  <p class="text-sm text-gray-500">Placed on ${new Date(order.createdAt).toLocaleDateString()}</p>
+                </div>
+                <span class="px-3 py-1 rounded-full text-sm font-medium ${statusClass}">
+                  ${order.status}
+                </span>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                  <thead class="bg-gray-100 text-gray-600">
+                    <tr>
+                      <th class="py-2">Product</th>
+                      <th class="py-2 text-center">Qty</th>
+                      <th class="py-2 text-center">Unit Price</th>
+                      <th class="py-2 text-right">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>${itemsHTML}</tbody>
+                </table>
+              </div>
+              <div class="mt-4 flex justify-between items-start text-sm text-gray-700">
+                <div>
+                  <p class="font-medium mb-1">Shipping Address:</p>
+                  <p class="text-gray-600">${order.address}</p>
+                </div>
+                <div class="text-right">
+                  <p class="font-medium">Total Amount:</p>
+                  <p class="text-xl font-bold text-indigo-700">$${order.total.toFixed(2)}</p>
+                </div>
+              </div>
+            </div>
+          `;
+        });
+      } catch (error) {
+        console.error('Error fetching orders:', error);
+        document.getElementById('orders').innerHTML = `
+          <div class="text-center text-red-500 py-10 animate__animated animate__fadeIn">
+            <p>Something went wrong while loading your orders.</p>
+          </div>
+        `;
+      }
+    }
+
+    updateNav();
+    fetchOrders();
+  </script>
+</body>
+</html>
