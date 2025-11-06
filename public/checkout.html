@@ -38,7 +38,7 @@
           </thead>
           <tbody id="order-items"></tbody>
         </table>
-        <p class="mt-6 text-xl font-bold text-gray-800">Total: <span id="order-total">$0.00</span></p>
+        <p class="mt-6 text-xl font-bold text-gray-800">Total: <span id="order-total">₹0.00</span></p>
       </div>
 
       <!-- Checkout Form -->
@@ -97,7 +97,7 @@
         orderItems.innerHTML = '';
         if (!cart.items || cart.items.length === 0) {
           orderItems.innerHTML = '<tr><td colspan="4" class="py-4 text-center text-gray-500">Cart is empty</td></tr>';
-          orderTotal.textContent = '$0.00';
+          orderTotal.textContent = '₹0.00';
           checkoutBtn.disabled = true;
           return;
         }
@@ -112,12 +112,12 @@
                 <img src="${item.product.image}" alt="${item.product.name}" class="w-12 h-12 object-cover rounded" />
                 <span>${item.product.name}</span>
               </td>
-              <td class="py-2">$${item.product.price.toFixed(2)}</td>
+              <td class="py-2">₹${item.product.price.toFixed(2)}</td>
               <td class="py-2">${item.quantity}</td>
-              <td class="py-2">$${itemTotal.toFixed(2)}</td>
+              <td class="py-2">₹${itemTotal.toFixed(2)}</td>
             </tr>`;
         });
-        orderTotal.textContent = `$${total.toFixed(2)}`;
+        orderTotal.textContent = `₹${total.toFixed(2)}`;
         checkoutBtn.disabled = false;
       } catch (err) {
         console.error('Cart error:', err);
